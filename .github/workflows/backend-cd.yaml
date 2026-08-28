@@ -65,9 +65,12 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Resolve image URI
+        run: |
+          REPO="$(echo "${{ secrets.BACKEND_ECR_REPO }}" | tr -d '[:space:]')"
+          echo "IMAGE=${REPO}:${{ github.sha }}" >> $GITHUB_ENV
+
       - name: Build, tag, and push image to ECR
-        env:
-          IMAGE: ${{ secrets.BACKEND_ECR_REPO }}:${{ github.sha }}
         run: |
           docker build --tag "$IMAGE" .
           docker push "$IMAGE"
@@ -81,8 +84,6 @@ jobs:
         run: aws eks update-kubeconfig --name "$CLUSTER_NAME" --region ${{ secrets.AWS_REGION }}
 
       - name: Deploy to EKS
-        env:
-          IMAGE: ${{ secrets.BACKEND_ECR_REPO }}:${{ github.sha }}
         run: |
           cd k8s
           kustomize edit set image backend="$IMAGE"

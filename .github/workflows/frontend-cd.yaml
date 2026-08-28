@@ -79,9 +79,12 @@ jobs:
           echo "Backend endpoint: http://$HOST"
           echo "MOVIE_API_URL=http://$HOST" >> $GITHUB_ENV
 
+      - name: Resolve image URI
+        run: |
+          REPO="$(echo "${{ secrets.FRONTEND_ECR_REPO }}" | tr -d '[:space:]')"
+          echo "IMAGE=${REPO}:${{ github.sha }}" >> $GITHUB_ENV
+
       - name: Build, tag, and push image to ECR
-        env:
-          IMAGE: ${{ secrets.FRONTEND_ECR_REPO }}:${{ github.sha }}
         run: |
           docker build \
             --build-arg REACT_APP_MOVIE_API_URL="$MOVIE_API_URL" \
@@ -94,8 +97,6 @@ jobs:
           sudo mv kustomize /usr/local/bin/
 
       - name: Deploy to EKS
-        env:
-          IMAGE: ${{ secrets.FRONTEND_ECR_REPO }}:${{ github.sha }}
         run: |
           cd k8s
           kustomize edit set image frontend="$IMAGE"
